@@ -3,7 +3,7 @@ const Post = require("../models/Post");
 // Create Post
 exports.createPost = async (req, res) => {
   try {
-    const newPost = new Post({ ...req.body, author: req.user.id });
+    const newPost = new Post({ ...req.body});
     await newPost.save();
     res.status(201).json(newPost);
   } catch (err) {
@@ -12,7 +12,7 @@ exports.createPost = async (req, res) => {
 };
 
 // Get All Posts
-exports.getPosts = async (req, res) => {
+exports.getPosts = async (req, res) => { 
   try {
     const posts = await Post.find().populate("author", "username");
     res.json(posts);
@@ -47,10 +47,10 @@ exports.toggleLike = async (req, res) => {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: "Post not found" });
 
-    const likeIndex = post.likes.findIndex(like => like.userId.toString() === req.user.id);
+    const likeIndex = post.likes.findIndex(like => like.userId === req.userId);
     if (likeIndex === -1) {
       // Add like
-      post.likes.push({ userId: req.user.id });
+      post.likes.push({ userId: req.userId });
     } else {
       // Remove like
       post.likes.splice(likeIndex, 1);
@@ -69,10 +69,10 @@ exports.addComment = async (req, res) => {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: "Post not found" });
 
-    const { text } = req.body;
+    const { text, userId, username } = req.body;
     if (!text) return res.status(400).json({ error: "Comment text is required" });
 
-    post.comments.push({ userId: req.user.id, text });
+    post.comments.push({ userId: userId,username,  text });
     await post.save();
     res.json(post);
   } catch (err) {
@@ -82,11 +82,13 @@ exports.addComment = async (req, res) => {
 
 // Remove Comment
 exports.removeComment = async (req, res) => {
+  
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: "Post not found" });
-
+    console.log("ids",post)
     const commentIndex = post.comments.findIndex(comment => comment._id.toString() === req.params.commentId);
+    
     if (commentIndex === -1) return res.status(404).json({ error: "Comment not found" });
 
     post.comments.splice(commentIndex, 1);
